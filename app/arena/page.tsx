@@ -123,6 +123,36 @@ export default function ArenaPage() {
     [matchup, phase]
   );
 
+  // Tap the other side after voting to switch your pick.
+  const switchVote = useCallback(
+    async (side: "left" | "right") => {
+      if (!matchup || phase !== "reveal" || side === picked) return;
+      setError(null);
+      try {
+        const res = await fetch("/api/vote", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matchupId: matchup.id, side }),
+        });
+        const data = await res.json();
+        if (data.results) {
+          setPicked(side);
+          setResults(data.results);
+        } else {
+          setError(data.error ?? "Couldn't switch your vote. Try again.");
+        }
+      } catch {
+        setError("Couldn't switch your vote. Check your connection and try again.");
+      }
+    },
+    [matchup, phase, picked]
+  );
+
+  function handleSideClick(side: "left" | "right") {
+    if (phase === "pick") vote(side);
+    else if (phase === "reveal") switchVote(side);
+  }
+
   function next() {
     setPicked(null);
     setResults(null);
@@ -231,8 +261,8 @@ export default function ArenaPage() {
           dimmed={showResults !== null && picked !== "left"}
           pct={results?.leftPct}
           votes={results?.left}
-          disabled={phase !== "pick"}
-          onPick={() => vote("left")}
+          disabled={phase !== "pick" && phase !== "reveal"}
+          onPick={() => handleSideClick("left")}
         />
         <SideButton
           key={`${matchup.id}-right`}
@@ -243,8 +273,8 @@ export default function ArenaPage() {
           dimmed={showResults !== null && picked !== "right"}
           pct={results?.rightPct}
           votes={results?.right}
-          disabled={phase !== "pick"}
-          onPick={() => vote("right")}
+          disabled={phase !== "pick" && phase !== "reveal"}
+          onPick={() => handleSideClick("right")}
         />
 
         {/* VS badge */}
@@ -263,6 +293,9 @@ export default function ArenaPage() {
             <p className="text-sm tracking-[0.3em] text-white/60">
               {results.total.toLocaleString()}{" "}
               {results.total === 1 ? "VOTE" : "VOTES"} &middot; THE WORLD SAYS:
+            </p>
+            <p className="-mt-2 text-xs tracking-[0.25em] text-white/35">
+              TAP THE OTHER SIDE TO CHANGE YOUR PICK
             </p>
             <button
               onClick={next}

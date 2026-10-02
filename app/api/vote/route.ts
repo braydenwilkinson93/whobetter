@@ -103,6 +103,60 @@ export async function POST(req: Request) {
   }
 }
 
+// PUT /api/vote — switch an existing vote to the other side.
+export async function PUT(req: Request) {
+  try {
+    if (!sameOrigin(req)) {
+      return NextResponse.json({ error: "Bad origin" }, { status: 403 });
+    }
+    const raw = await req.text();
+    if (raw.length > 10 * 1024) {
+      return NextResponse.json({ error: "Body too large" }, { status: 413 });
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+    const body = parsed as { matchupId?: unknown; side?: unknown };
+    if (
+      typeof body.matchupId !== "string" ||
+      (body.side !== "left" && body.side !== "right")
+    ) {
+      return NextResponse.json({ error: "Invalid vote" }, { status: 400 });
+    }
+
+    const jar = await cookies();
+    const deviceId = jar.get(DEVICE_COOKIE)?.value;
+    if (!deviceId) {
+      return NextResponse.json({ error: "No vote to change" }, { status: 404 });
+    }
+
+    const existing = await prisma.vote.findUnique({
+      where: {
+        matchupId_deviceId: { matchupId: body.matchupId, deviceId },
+      },
+    });
+    if (!existing) {
+      return NextResponse.json({ error: "No vote to change" }, { status: 404 });
+    }
+
+    if (existing.side !== body.side) {
+      await prisma.vote.update({
+        where: { id: existing.id },
+        data: { side: body.side },
+      });
+    }
+
+    const results = await tally(body.matchupId);
+    return NextResponse.json({ ok: true, results }, { status: 200 });
+  } catch (err) {
+    console.error("vote switch error", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
 function cookieOpts() {
   return {
     httpOnly: true,
