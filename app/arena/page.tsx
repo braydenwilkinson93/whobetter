@@ -298,7 +298,7 @@ function SideButton({
           className="h-full w-full object-cover"
           draggable={false}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/5 to-transparent" />
       </div>
       <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
         <p

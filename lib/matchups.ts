@@ -84,8 +84,8 @@ export const MATCHUPS: MatchupDef[] = [
   {
     order: 7,
     question: "Who's the baddest bitch on earth?!",
-    // TODO Brayden: supply audio clip later (drop the .mp3 in /public and set this)
-    audio: null,
+    // Round 7 audio — 70sP clip (Brayden: veto if it's not the vibe)
+    audio: "/70sP.mp3",
     // Beyonce GIF — supplied by Brayden 2026-10-01
     left: { name: "BEYONCE", gif: "/gifs/beyonce.gif" },
     // Rihanna GIF — supplied by Brayden 2026-10-01
