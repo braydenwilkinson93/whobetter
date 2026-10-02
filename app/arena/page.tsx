@@ -49,13 +49,14 @@ export default function ArenaPage() {
   const matchup = matchups[index];
   const isLast = index === matchups.length - 1;
 
-  // Per-round looping audio (silent rounds have audio: null).
+  // Per-round looping audio. Restarts ONLY when the round changes —
+  // voting, reveals, and errors never touch the music.
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
     }
-    if (!matchup?.audio || phase === "done") return;
+    if (!matchup?.audio) return;
     const audio = new Audio(matchup.audio);
     audio.loop = true;
     audio.volume = 0.5;
@@ -64,7 +65,26 @@ export default function ArenaPage() {
     return () => {
       audio.pause();
     };
-  }, [matchup?.audio, matchup?.id, phase]);
+  }, [matchup?.id, matchup?.audio]);
+
+  // Silence everything once the card is done.
+  useEffect(() => {
+    if (phase === "done" && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+  }, [phase]);
+
+  // Preload the next round's GIFs so the arena swaps instantly —
+  // no more old GIFs lingering under the new question.
+  useEffect(() => {
+    const next = matchups[index + 1];
+    if (!next) return;
+    [next.leftGif, next.rightGif].forEach((src) => {
+      const im = new Image();
+      im.src = src;
+    });
+  }, [index, matchups]);
 
   // Stop everything on unmount.
   useEffect(() => {
@@ -203,6 +223,7 @@ export default function ArenaPage() {
       {/* arena */}
       <div className="relative mt-8 grid flex-1 grid-cols-2 gap-3 sm:gap-6">
         <SideButton
+          key={`${matchup.id}-left`}
           side="left"
           name={matchup.leftName}
           gif={matchup.leftGif}
@@ -214,6 +235,7 @@ export default function ArenaPage() {
           onPick={() => vote("left")}
         />
         <SideButton
+          key={`${matchup.id}-right`}
           side="right"
           name={matchup.rightName}
           gif={matchup.rightGif}
