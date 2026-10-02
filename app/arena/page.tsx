@@ -31,6 +31,8 @@ export default function ArenaPage() {
   const [picked, setPicked] = useState<"left" | "right" | null>(null);
   const [results, setResults] = useState<Results | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [picks, setPicks] = useState<Record<string, "left" | "right">>({});
+  const [shared, setShared] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -97,6 +99,7 @@ export default function ArenaPage() {
     async (side: "left" | "right") => {
       if (!matchup || phase !== "pick") return;
       setPicked(side);
+      setPicks((p) => ({ ...p, [matchup.id]: side }));
       setPhase("voting");
       setError(null);
       try {
@@ -137,6 +140,7 @@ export default function ArenaPage() {
         const data = await res.json();
         if (data.results) {
           setPicked(side);
+          setPicks((p) => ({ ...p, [matchup.id]: side }));
           setResults(data.results);
         } else {
           setError(data.error ?? "Couldn't switch your vote. Try again.");
@@ -171,7 +175,41 @@ export default function ArenaPage() {
     setPicked(null);
     setResults(null);
     setError(null);
+    setPicks({});
+    setShared(false);
     setPhase("pick");
+  }
+
+  // Share your picks — native share sheet on mobile, clipboard fallback.
+  function shareText() {
+    const lines = matchups.map((m) => {
+      const pick = picks[m.id];
+      if (!pick) return null;
+      const winner = pick === "left" ? m.leftName : m.rightName;
+      const loser = pick === "left" ? m.rightName : m.leftName;
+      return `${winner} over ${loser}`;
+    }).filter(Boolean);
+    return `WHO BETTER!? — my takes:\n${(lines as string[]).join("\n")}\n\nYou think you know better?`;
+  }
+
+  async function sharePicks() {
+    const url = window.location.origin;
+    const text = shareText();
+    const nav = navigator as Navigator & { share?: (d: { title: string; text: string; url: string }) => Promise<void> };
+    if (nav.share) {
+      try {
+        await nav.share({ title: "who better?", text, url });
+      } catch {
+        /* user dismissed */
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        setShared(true);
+      } catch {
+        setError("Couldn't copy. Long-press the URL to share it manually.");
+      }
+    }
   }
 
   if (phase === "loading" || !matchup) {
@@ -196,7 +234,41 @@ export default function ArenaPage() {
         <p className="wb-rise wb-rise-2 mt-6 max-w-md text-lg text-white/75">
           Your takes are on the record. The world knows where you stand.
         </p>
+
+        {/* your picks recap */}
+        <div className="wb-rise wb-rise-2 mt-8 w-full max-w-md">
+          {matchups.map((m) => {
+            const pick = picks[m.id];
+            if (!pick) return null;
+            const winner = pick === "left" ? m.leftName : m.rightName;
+            const loser = pick === "left" ? m.rightName : m.leftName;
+            return (
+              <div
+                key={m.id}
+                className="flex items-center justify-between gap-4 border-b border-white/10 py-2.5"
+              >
+                <span className="text-xs tracking-widest text-white/45">
+                  {m.leftName} VS {m.rightName}
+                </span>
+                <span className="font-display text-right text-lg leading-tight text-[#ffd166]">
+                  {winner}
+                  <span className="block text-[11px] tracking-widest text-white/40">
+                    OVER {loser}
+                  </span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
         <div className="wb-rise wb-rise-3 mt-10 flex flex-col gap-4 sm:flex-row">
+          <button
+            onClick={sharePicks}
+            className="font-display rounded-xl border-2 border-[#00e5ff] px-10 py-4 text-2xl tracking-wider text-white transition hover:scale-105"
+            style={{ boxShadow: "0 0 24px rgba(0,229,255,0.4)" }}
+          >
+            {shared ? "COPIED!" : "SHARE YOUR PICKS"}
+          </button>
           <Link
             href="/leaderboard"
             className="font-display rounded-xl border-2 border-[#00e5ff] px-10 py-4 text-2xl tracking-wider text-white transition hover:scale-105"
