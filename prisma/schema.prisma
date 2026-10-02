@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Matchup {
+  id        String   @id @default(cuid())
+  order     Int      @unique
+  question  String
+  audio     String? // path under /public (e.g. "/KendrickDrake.mp3"), null = silent round
+  leftName  String
+  leftGif   String
+  rightName String
+  rightGif  String
+  createdAt DateTime @default(now())
+  votes     Vote[]
+
+  @@index([order])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  matchupId String
+  matchup   Matchup  @relation(fields: [matchupId], references: [id], onDelete: Cascade)
+  side      String // "left" | "right"
+  deviceId  String
+  ipHash    String
+  createdAt DateTime @default(now())
+
+  @@unique([matchupId, deviceId])
+  @@index([matchupId])
+  @@index([ipHash, createdAt])
+}
+
+model RateLimit {
+  id        String   @id @default(cuid())
+  actorHash String
+  window    DateTime
+  count     Int      @default(1)
+
+  @@unique([actorHash, window])
+  @@index([actorHash, window])
+}

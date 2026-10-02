@@ -1,159 +1,92 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
 
-const MATCHUPS = [
-  {
-    question: "Who won the battle?",
-    audio: "/KendrickDrake.mp3",
-    left: { name: "DRAKE", gif: "https://media1.giphy.com/media/dF7UUCBKoaqhN0RWY2/giphy.gif" },
-    right: { name: "KENDRICK", gif: "https://media1.giphy.com/media/DH6fzYpt6oPrQhoUI5/giphy.gif" },
-  },
-  {
-    question: "Who is the greatest heavyweight?",
-    audio: "/AliTyson.mp3",
-    left: { name: "ALI", gif: "https://media1.giphy.com/media/m8DxjuVWRF73y/giphy.gif" },
-    right: { name: "TYSON", gif: "https://media1.giphy.com/media/w4NAKAenurl8k/giphy.gif" },
-  },
-  {
-    question: "Who the GOAT?",
-    audio: "/BronMj.mp3",
-    left: { name: "LEBRON", gif: "https://media3.giphy.com/media/0PZdPNRY8fktC7fJRP/giphy.gif" },
-    right: { name: "JORDAN", gif: "https://media2.giphy.com/media/U6FgnRQfSfSCQaDWMZ/giphy.gif" },
-  },
-  {
-    question: "What's better when drunk as fuck?",
-    audio: "/HotDogCheeseBurger.mp3",
-    left: { name: "HOT DOG", gif: "https://media3.giphy.com/media/WO8LKOJkpalUs/giphy.gif" },
-    right: { name: "CHEESEBURGER", gif: "https://media3.giphy.com/media/dZnhuCg9tg5Ms/giphy.gif" },
-  },
-  {
-    question: "Who the better president? 😎",
-    audio: "/TrumpObama.mp3",
-    left: { name: "DIPSHIT DONALD", gif: "https://media0.giphy.com/media/33bvqtONP3lctZQyWp/giphy.gif" },
-    right: { name: "BARACK 😎", gif: "https://media0.giphy.com/media/mPXnKTaqa38RMYEihw/giphy.gif" },
-  },
-  {
-    question: "Best team in Kentucky?",
-    audio: "/UKLouisville.mp3",
-    left: { name: "UK WILDCATS", gif: "https://media4.giphy.com/media/DoFQkTYH5ju9kWM41H/giphy.gif" },
-    right: { name: "LOUISVILLE", gif: "https://media3.giphy.com/media/3o6ZtqtWMGMZVnxr4k/giphy.gif" },
-  },
-  {
-    question: "Who are you crashing tonight? 👀",
-    audio: "/70sP.mp3",
-    left: { name: "Alexis Texas", gif: "https://i.redd.it/tvi2ipvww5qf1.gif" },
-    right: { name: "Lisa Ann", gif: "https://i.redd.it/yz36eahjxpxf1.gif" },
-  },
-];
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
-export default function Home() {
-  const [step, setStep] = useState<"intro" | "poll" | "done">("intro");
-  const [current, setCurrent] = useState(0);
-  const [selected, setSelected] = useState<"left" | "right" | null>(null);
+// Brayden's exact words — do not edit casing or punctuation.
+const INTRO_LINE_1 = "who better now tho?!";
+const INTRO_LINE_2 = "You think you know what's up?";
+const INTRO_LINE_3 = "Well Here We Go!!!!!!!";
+
+export default function IntroPage() {
+  const router = useRouter();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [muted, setMuted] = useState(false);
+
+  // Rising build-up loop. Browsers block autoplay with sound, so we try on
+  // mount and again on the first user interaction (whichever comes first).
+  useEffect(() => {
+    const audio = new Audio("/riser.mp3");
+    audio.loop = true;
+    audio.volume = 0.55;
+    audioRef.current = audio;
+
+    const tryPlay = () => {
+      audio.play().catch(() => {});
+    };
+    tryPlay();
+    window.addEventListener("pointerdown", tryPlay, { once: false });
+    return () => {
+      window.removeEventListener("pointerdown", tryPlay);
+      audio.pause();
+      audioRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
-    if (step !== "poll") {
-      audioRef.current?.pause();
-      return;
-    }
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current = null;
-    }
-    const audio = new Audio(MATCHUPS[current].audio);
-    audio.loop = true;
-    audio.volume = 0.5;
-    audio.play().catch(() => {});
-    audioRef.current = audio;
-    return () => { audio.pause(); };
-  }, [current, step]);
-
-  const matchup = MATCHUPS[current];
-  const isLast = current === MATCHUPS.length - 1;
+    if (audioRef.current) audioRef.current.muted = muted;
+  }, [muted]);
 
   function handleStart() {
-    setStep("poll");
-  }
-
-  function handleNext() {
-    if (!selected) return;
-    if (isLast) { setStep("done"); return; }
-    setCurrent((c) => c + 1);
-    setSelected(null);
-  }
-
-  function handleRestart() {
-    setCurrent(0);
-    setSelected(null);
-    setStep("intro");
+    // Kill the riser and go IMMEDIATELY into round 1.
+    audioRef.current?.pause();
+    audioRef.current = null;
+    router.push("/arena");
   }
 
   return (
-    <div className="wb-page">
-      <div className="wb-card">
+    <main className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <button
+        onClick={() => setMuted((m) => !m)}
+        aria-label={muted ? "Unmute" : "Mute"}
+        className="absolute right-5 top-5 rounded-full border border-white/15 px-4 py-2 text-xs tracking-widest text-white/60 transition hover:border-white/40 hover:text-white"
+      >
+        {muted ? "🔇 MUTED" : "🔊 SOUND ON"}
+      </button>
 
-        {step === "intro" && (
-          <div className="wb-intro">
-            <div className="wb-intro-bg" />
-            <div className="wb-intro-content">
-              <div className="wb-logo-big">WHO BETTER!?</div>
-              <p className="wb-intro-text">you think you know what's up?<br />answer these questions!</p>
-              <button className="wb-start" onClick={handleStart}>
-                LET'S GO →
-              </button>
-            </div>
-          </div>
-        )}
+      <p className="wb-rise wb-rise-1 mb-6 text-xs font-bold tracking-[0.5em] text-white/50">
+        HEAD-TO-HEAD &middot; YOU DECIDE
+      </p>
 
-        {step === "poll" && (
-          <>
-            <div className="wb-header">
-              <div className="wb-logo">WHO BETTER!?</div>
-              <div className="wb-progress">
-                {MATCHUPS.map((_, i) => (
-                  <div key={i} className={`wb-pip ${i === current ? "active" : i < current ? "done" : ""}`} />
-                ))}
-              </div>
-            </div>
-            <div className="wb-question">
-              <div className="wb-vs">ROUND {current + 1} OF {MATCHUPS.length}</div>
-              <h2>{matchup.question}</h2>
-            </div>
-            <div className="wb-arena">
-              <div className={`wb-side${selected === "left" ? " selected" : ""}`} onClick={() => setSelected("left")}>
-                <img className="wb-gif" src={matchup.left.gif} alt={matchup.left.name} />
-                <div className="wb-side-overlay" />
-                <div className="wb-check">✓</div>
-                <div className="wb-side-name">{matchup.left.name}</div>
-              </div>
-              <div className={`wb-side${selected === "right" ? " selected" : ""}`} onClick={() => setSelected("right")}>
-                <img className="wb-gif" src={matchup.right.gif} alt={matchup.right.name} />
-                <div className="wb-side-overlay" />
-                <div className="wb-check">✓</div>
-                <div className="wb-side-name">{matchup.right.name}</div>
-              </div>
-              <div className="wb-divider">
-                <div className="wb-vs-badge">VS</div>
-              </div>
-            </div>
-            <div className="wb-footer">
-              <button className="wb-next" disabled={!selected} onClick={handleNext}>
-                {isLast ? "FINISH" : "NEXT →"}
-              </button>
-            </div>
-          </>
-        )}
+      <h1 className="font-display wb-rise wb-rise-2 wb-flicker neon-text-gold max-w-4xl text-6xl leading-[0.95] sm:text-8xl">
+        {INTRO_LINE_1}
+      </h1>
 
-        {step === "done" && (
-          <div className="wb-done">
-            <h1>THAT'S A WRAP</h1>
-            <p>You've settled it. Your takes have been recorded. The world now knows.</p>
-            <button className="wb-restart" onClick={handleRestart}>RUN IT BACK</button>
-          </div>
-        )}
+      <p className="wb-rise wb-rise-3 mt-8 max-w-xl text-xl text-white/85 sm:text-2xl">
+        {INTRO_LINE_2}
+      </p>
+      <p className="wb-rise wb-rise-3 mt-2 font-display text-2xl tracking-wide text-white sm:text-3xl">
+        <span className="neon-text-red">{INTRO_LINE_3}</span>
+      </p>
 
-      </div>
-    </div>
+      <button
+        onClick={handleStart}
+        className="wb-rise wb-rise-4 font-display group mt-12 rounded-xl border-2 border-[#ffd166] px-12 py-5 text-3xl tracking-wider text-white transition duration-200 hover:scale-105"
+        style={{
+          boxShadow:
+            "0 0 24px rgba(255,209,102,0.35), inset 0 0 18px rgba(255,209,102,0.12)",
+          background: "rgba(255,209,102,0.06)",
+        }}
+      >
+        LET&rsquo;S GO{" "}
+        <span className="inline-block transition-transform group-hover:translate-x-1">
+          &rarr;
+        </span>
+      </button>
+
+      <p className="wb-rise wb-rise-4 mt-8 text-xs tracking-widest text-white/35">
+        VOTE EVERY ROUND &middot; SEE THE WORLD&rsquo;S SPLIT LIVE
+      </p>
+    </main>
   );
 }
