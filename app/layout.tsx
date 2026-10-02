@@ -25,9 +25,10 @@ export const metadata: Metadata = {
     description:
       "Settle the debate. Vote head-to-head, see where the world stands.",
     type: "website",
+    url: "https://whobetter.joinratio.app/",
     images: [
       {
-        url: "/og-image.png",
+        url: "https://whobetter.joinratio.app/og-image.png",
         width: 1200,
         height: 630,
         alt: "who better?",
@@ -39,7 +40,7 @@ export const metadata: Metadata = {
     title: "who better?",
     description:
       "Settle the debate. Vote head-to-head, see where the world stands.",
-    images: ["/og-image.png"],
+    images: ["https://whobetter.joinratio.app/og-image.png"],
   },
 };
 
